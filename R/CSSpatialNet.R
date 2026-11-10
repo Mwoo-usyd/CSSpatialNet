@@ -33,7 +33,7 @@ CSSpatialNet <- function(X,
                                epsilon = epsilon)
 
   # calculate SEs
-  SEs <- se_from_estim(estim = optim_out, z = c(X), svd_obj = svd_obj, D_list = D_list, W = weight_mat, new = TRUE) # need se_from_estim
+  SEs <- se_from_estim(estim = optim_out, vec_X = c(X), svd_obj = svd_obj, D_list = D_list, W = weight_mat, new = TRUE) # need se_from_estim
 
   # return estimates and SEs
 }

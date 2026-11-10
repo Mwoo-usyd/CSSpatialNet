@@ -1,4 +1,6 @@
-calcul_dV_dSigmak <- function(Ainv_list, D_list,n) {
+calcul_dV_dSigmak <- function(Ainv_list,
+                              D_list,
+                              n) {
   K <- length(Ainv_list)
   p <- nrow(Ainv_list[[1]])/n
   dV_dPk_list <- lapply(c(1:K), function(k) {

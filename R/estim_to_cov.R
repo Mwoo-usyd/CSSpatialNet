@@ -1,4 +1,6 @@
-estim_to_cov <- function(long_estim, K, p) {
+estim_to_cov <- function(long_estim,
+                         K,
+                         p) {
   triangle_num <- p*(p-1)/2
   large_triangle <- (p+1)*p/2
   P_list <- list()

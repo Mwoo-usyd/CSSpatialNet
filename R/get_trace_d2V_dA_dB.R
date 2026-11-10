@@ -1,4 +1,38 @@
-get_trace_d2V_dA_dB <- function(a, b, p, K, d2V_dPk_dPk_list, d2V_dSigmak_dPk_list, Vinv_dl_dVinv_Vinv, all_cell_types) {
+#' get_trace_d2V_dA_dB
+#'
+#' @description
+#' Function to generate the component of the second derivative of the
+#' log-likelihood that is only non-zero if the two parameters are of the same
+#' cell type.
+#'
+#' @param a Index of first parameter
+#' @param b Index of second parameter
+#' @param p number of genes
+#' @param K number of cell types
+#' @param d2V_dPk_dPk_list List of second derivatives of V (covariance matrix
+#' of vec(X)) with respect to two spatial autocorrelation parameters
+#' @param d2V_dSigmak_dPk_list List of second derivatives of V (covariance
+#' matrix of vec(X)) with respect to one spatial autocorrelation parameter and
+#' one gene variance or covariance parameter
+#' @param Vinv_dl_dVinv_Vinv V^{-1} times derivative of log-likelihood with
+#' respect to V^{-1} times V^{-1}
+#' @param all_cell_types vector of cell types (labelled 1 to K) for
+#' each parameter
+#'
+#' @return Matrix of parts of second derivative of V that are non-zero only if
+#' the two parameters are of the same cell type
+#'
+#' @keywords internal
+#'
+
+get_trace_d2V_dA_dB <- function(a,
+                                b,
+                                p,
+                                K,
+                                d2V_dPk_dPk_list,
+                                d2V_dSigmak_dPk_list,
+                                Vinv_dl_dVinv_Vinv,
+                                all_cell_types) {
   if (check_same_cell_type(a = a, b = b, p = p, K = K)) {
     current_cell_type <- all_cell_types[a]
     param1 <- ifelse(a <= K*p, "Pk", "Sigmak")

@@ -1,22 +1,26 @@
 #' calcul_d2l_dVinvdX_matrix
 #'
 #' @description
-#' This functions calculates the second derivative of the loglikelihood with
-#' respect to V^{-1} (inverse of the covariance matrix) and each parameter.
+#' This functions calculates the second derivative of the log-likelihood with
+#' respect to V^{-1} (inverse of the covariance matrix of vec(X))
+#' and each parameter.
 #'
 #' @param Ainv_list List of matrices of the form
 #' $(I_{n} - P_{k,i} \otimes W)^{-1}$ where $P_{k,i}$ is the spatial autocorrelation
 #' of the i'th gene in the k'th cell type
+#' @param D_list List of expanded proportions of length K. Each is a diagonal
+#' np *np matrix whose values are the k'th cell type proportions,
+#' repeated p times.
+#' @param W Spatial weight matrix
+#' @param Sigma_list List of cell-type-specific covariance matrices
+#' @param V Covariance matrix of vec(X)
+#' @param dl_dVinv_Vinv Derivative of log-likelihood with respect to $V^{-1}$,
+#' multiplied by $V^{-1}$
 #'
+#' @return Matrix of partial second derivatives of log-likelihood with respect
+#' to $V^{-1}$ and each parameter.
 #'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
+#' @keywords internal
 #'
 calcul_d2l_dVinvdX_matrix <- function(Ainv_list,
                                       D_list,

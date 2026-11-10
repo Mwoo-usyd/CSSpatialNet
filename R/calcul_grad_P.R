@@ -4,11 +4,11 @@ calcul_grad_P <- function(current_P_list, # list of K P matrices, each pxp
                           D_list,
                           W,
                           svd_obj, # created from svd(W), outside of this so as to not redo it many times. Includes slots v_inv and u_inv
-                          x, # n * p matrix
+                          vec_X,
                           Ainv_list = NULL,
                           D_Ainv_list = NULL,
                           Ainv_D_list = NULL,
-                          current_V = NULL) {
+                          V = NULL) {
   K <- length(current_Sigma_list)
   n <- length(svd_obj$d)
   p <- nrow(current_P_list[[1]])
@@ -30,18 +30,16 @@ calcul_grad_P <- function(current_P_list, # list of K P matrices, each pxp
       return(Ainv_list[[k]] * diag(D_list[[k]]))
     })
   }
-  if (is.null(current_V)) {
-    current_V <- calcul_V_P(current_Ainv_list = Ainv_list,
+  if (is.null(V)) {
+    V <- calcul_V_P(current_Ainv_list = Ainv_list,
                             current_Sigma_list = current_Sigma_list,
                             D_list = D_list)
   }
 
-  term1 <- (1/2) * current_V - 0.5 * tcrossprod(as.matrix(c(x))) # this is not dependent on i or if we are looking at rho or sigma2 # here want it to be np*np
-  # V_inv <- chol2inv(chol(current_V)) # Up to twice as fast as solve(current_V)
-  # V_inv <- ginv(as.matrix(current_V))
+  term1 <- (1/2) * V - 0.5 * tcrossprod(as.matrix(c(vec_X))) # this is not dependent on i or if we are looking at rho or sigma2 # here want it to be np*np
   # F_mat <- V_inv %*% term1 %*% V_inv # meant to be t(term1) but it is symmetric anyway
-  intermediate_product <- solve(current_V, term1) # this is a faster way to get current_V^-1 %*% term1 %*% current_V^-1
-  F_mat <- t(solve(t(current_V), t(intermediate_product)))
+  intermediate_product <- solve(V, term1)
+  F_mat <- t(solve(t(V), t(intermediate_product)))
 
   grad_list <- list() # list of gradient matrices, length 2K since has parameters P_i and Sigma_i. Each element is a pxp matrix of derivatives
 
