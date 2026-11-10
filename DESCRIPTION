@@ -1,0 +1,11 @@
+Package: CSSpatialNet
+Title: Cell-type specific spatial autocorrelation and covariance estimation from spot-level spatial data
+Version: 0.0.0.9000
+Authors@R: 
+    person("Max", "Woollard", , "mwoo5086@uni.sydney.edu.au", role = c("aut", "cre"))
+Description: What the package does (one paragraph).
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Config/roxygen2/version: 8.1.1
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
