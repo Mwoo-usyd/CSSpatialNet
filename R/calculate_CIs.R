@@ -28,6 +28,7 @@
 #' @importFrom dplyr mutate
 #' @importFrom magrittr %>%
 #' @importFrom stats qnorm
+#' @importFrom rlang .data
 #'
 #' @examples
 #' data(SimulatedData)

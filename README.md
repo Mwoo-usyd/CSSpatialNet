@@ -6,4 +6,9 @@ This is an R package for estimating the spatial autocorrelation and covariances 
 
 ## Installation
 
-To install CSSpatialNet from Github, come back later when done
+To install CSSpatialNet from [GitHub](https://github.com/Mwoo-usyd/CSSpatialNet)
+
+```{r}
+library(devtools)
+devtools::install_github("Mwoo-usyd/CSSpatialNet")
+```
