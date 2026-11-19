@@ -9,6 +9,8 @@
 #'
 #' @return vector of initial parameter values
 #'
+#' @importFrom stats runif
+#'
 #' @keywords internal
 #'
 

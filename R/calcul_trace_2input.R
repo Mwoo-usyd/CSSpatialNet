@@ -25,5 +25,5 @@ calcul_trace_2input <- function(a,
   else {
     result <- dl_dVinv_Vinv %*% a %*% b
   }
-  return(sum(diag(result)))
+  return(sum(diag(as.matrix(result))))
 }

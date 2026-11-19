@@ -1,4 +1,34 @@
-calcul_d2V_dPk_dPk <- function(Ainv_list, D_Ainv_list, Ainv_D_list, W, Sigma_list) {
+
+#' calcul_d2V_dPk_dPk
+#'
+#' @description
+#' Calculates second derivative of V (covariance matrix of vec(X)) with respect
+#' to two spatial autocorrelation parameters.
+#'
+#' @param Ainv_list List of matrices of the form
+#' \eqn{(I_{n} - P_{k,i} \otimes W)^{-1}} where \eqn{P_{k,i}} is the spatial
+#' autocorrelation of the i'th gene in the k'th cell type
+#' @param D_Ainv_list List (length K) of each
+#' \eqn{D_k \times (I_{np}-P_{k}W)^{-1}}
+#' @param Ainv_D_list List (length K) of each
+#' \eqn{(I_{np}-P_{k}W)^{-1} \times D_k}
+#' @param W Spatial weight matrix
+#' @param Sigma_list List of cell-type-specific covariance matrices
+#'
+#' @return List of second derivative matrices, each corresponding to a
+#' unique combination of cell type, gene 1, and gene 2, where the matrix is the
+#' second derivative of V with respect to genes 1 and two in that cell type.
+#'
+#' @importFrom Matrix Matrix
+#' @importFrom purrr list_flatten
+#'
+#' @keywords internal
+
+calcul_d2V_dPk_dPk <- function(Ainv_list,
+                               D_Ainv_list,
+                               Ainv_D_list,
+                               W,
+                               Sigma_list) {
   K <- length(Ainv_list)
   n <- nrow(W)
   p <- nrow(Sigma_list[[1]])
@@ -23,9 +53,20 @@ calcul_d2V_dPk_dPk <- function(Ainv_list, D_Ainv_list, Ainv_D_list, W, Sigma_lis
         sigmak_i_j <- sigmak_i_component %*% ainv_j
         j_i_sigmak <- j_ainv %*% i_sigmak_component
         j_sigmak_i <- j_ainv %*% sigmak_i_component
-        i_j_sigmak <- i_component %*% Ainv_list[[k]] %*% j_ainv %*% sigmak_kron_In
-        sigmak_j_i <- sigmak_kron_In %*% Ainv_list[[k]] %*% j_ainv %*% i_component
-        sum6 <- i_sigmak_j + sigmak_i_j + j_i_sigmak + j_sigmak_i + i_j_sigmak + sigmak_j_i
+        i_j_sigmak <- i_component %*%
+          Ainv_list[[k]] %*%
+          j_ainv %*%
+          sigmak_kron_In
+        sigmak_j_i <- sigmak_kron_In %*%
+          Ainv_list[[k]] %*%
+          j_ainv %*%
+          i_component
+        sum6 <- i_sigmak_j +
+          sigmak_i_j +
+          j_i_sigmak +
+          j_sigmak_i +
+          i_j_sigmak +
+          sigmak_j_i
         final_grad <- D_Ainv_list[[k]] %*% sum6 %*% Ainv_D_list[[k]]
         return(final_grad)
       })

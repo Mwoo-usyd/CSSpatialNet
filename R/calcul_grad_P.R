@@ -1,20 +1,53 @@
-# function to calculate the gradient of log-likelihood with respect to all parameters (Pk diagonal and Sigmak diagonal and off-diagonal)
-calcul_grad_P <- function(current_P_list, # list of K P matrices, each pxp
-                          current_Sigma_list, # list of K Sigma matrices, each pxp
+#' calcul_grad_P
+#'
+#' @description
+#' Function to calculate the gradient of the log-likelihood with respect to
+#' each spatial autocorrelation and cell-type-specific covariance matrix
+#' parameter
+#'
+#' @param P_list List of cell-type specific diagonal matrices of spatial
+#' autocorrelation
+#' @param Sigma_list List of cell-type-specific covariance matrices
+#' @param D_list List of expanded proportions of length K. Each is a diagonal
+#' \eqn{np \times np} matrix whose values are the k'th cell type proportions,
+#' repeated p times.
+#' @param W Spatial weight matrix
+#' @param svd_obj Output of performing SVD on the spatial weight matrix. Also
+#' includes slots for the inverses of U and V, as well as t(U) * V.
+#' @param vec_X Vectorised gene expression matrix
+#' @param Ainv_list List of matrices of the form
+#' \eqn{(I_{n} - P_{k,i} \otimes W)^{-1}} where \eqn{P_{k,i}} is the spatial
+#' autocorrelation of the i'th gene in the k'th cell type
+#' @param D_Ainv_list List (length K) of each
+#' \eqn{D_k \times (I_{np}-P_{k}W)^{-1}}
+#' @param Ainv_D_list List (length K) of each
+#' \eqn{(I_{np}-P_{k}W)^{-1} \times D_k}
+#' @param V Covariance matrix of vec(X)
+#'
+#' @return List of gradients of the log-likelihood with respect to the
+#' (diagonal) matrices of cell-type-specific spatial autocorrelation, and the
+#' gene-gene covariance matrices
+#'
+#' @importFrom Matrix Matrix
+#'
+#' @keywords internal
+
+calcul_grad_P <- function(P_list,
+                          Sigma_list,
                           D_list,
                           W,
-                          svd_obj, # created from svd(W), outside of this so as to not redo it many times. Includes slots v_inv and u_inv
+                          svd_obj,
                           vec_X,
                           Ainv_list = NULL,
                           D_Ainv_list = NULL,
                           Ainv_D_list = NULL,
                           V = NULL) {
-  K <- length(current_Sigma_list)
+  K <- length(Sigma_list)
   n <- length(svd_obj$d)
-  p <- nrow(current_P_list[[1]])
+  p <- nrow(P_list[[1]])
 
   if (is.null(Ainv_list)) {
-    Ainv_list <- get_ainv(current_P_list,
+    Ainv_list <- get_ainv(P_list,
                           d = svd_obj$d,
                           U_inv = svd_obj$u_inv,
                           V_inv = svd_obj$v_inv,
@@ -31,27 +64,26 @@ calcul_grad_P <- function(current_P_list, # list of K P matrices, each pxp
     })
   }
   if (is.null(V)) {
-    V <- calcul_V_P(current_Ainv_list = Ainv_list,
-                            current_Sigma_list = current_Sigma_list,
-                            D_list = D_list)
+    V <- calcul_V_P(Ainv_list = Ainv_list,
+                    Sigma_list = Sigma_list,
+                    D_list = D_list)
   }
 
-  term1 <- (1/2) * V - 0.5 * tcrossprod(as.matrix(c(vec_X))) # this is not dependent on i or if we are looking at rho or sigma2 # here want it to be np*np
-  # F_mat <- V_inv %*% term1 %*% V_inv # meant to be t(term1) but it is symmetric anyway
-  intermediate_product <- solve(V, term1)
-  F_mat <- t(solve(t(V), t(intermediate_product)))
+  term1 <- (1/2) * V - 0.5 * tcrossprod(as.matrix(c(vec_X)))
+  intermediate_product <- solve(V, as.matrix(term1))
+  F_mat <- t(solve(t(as.matrix(V)), t(intermediate_product)))
 
-  grad_list <- list() # list of gradient matrices, length 2K since has parameters P_i and Sigma_i. Each element is a pxp matrix of derivatives
+  grad_list <- list()
 
   G_list <- lapply(c(1:K), function(k){
     G_mat <- Ainv_D_list[[k]] %*% F_mat %*% D_Ainv_list[[k]]
     return(G_mat)
   })
 
-  for (k in 1:K) { # first fill out first K terms with P_k derivatives
+  for (k in 1:K) {
     current_P_i_deriv <- matrix(0, nrow = p, ncol = p)
 
-    kron_component <- Matrix(kronecker(current_Sigma_list[[k]], diag(n)), sparse = TRUE)
+    kron_component <- Matrix(kronecker(Sigma_list[[k]], diag(n)), sparse = TRUE)
     first_part <- Ainv_list[[k]] %*% kron_component
     second_part <- kron_component %*% Ainv_list[[k]]
 
@@ -63,12 +95,12 @@ calcul_grad_P <- function(current_P_list, # list of K P matrices, each pxp
 
       inside <- kron_m1_W %*% first_part + second_part %*% kron_m1_W
 
-      deriv_current <- -sum(diag(G_list[[k]] %*% inside))
+      deriv_current <- -sum(diag(as.matrix(G_list[[k]] %*% inside)))
       current_P_i_deriv[i,i] <- deriv_current
     }
     grad_list <- grad_list %>% append(list(current_P_i_deriv))
   }
-  for (k in 1:K) { # next fill out remaining K terms with Sigma_i derivatives
+  for (k in 1:K) {
     G_mat_current <- G_list[[k]]
 
     current_Sigma_i_deriv <- matrix(0, nrow = p, ncol = p)
@@ -77,7 +109,7 @@ calcul_grad_P <- function(current_P_list, # list of K P matrices, each pxp
         rows_to_take <- ((i-1)*n+1):(i*n)
         cols_to_take <- ((j-1)*n+1):(j*n)
         G_subset <- G_mat_current[rows_to_take, cols_to_take]
-        current_Sigma_i_deriv[i,j] <- -sum(diag(G_subset))
+        current_Sigma_i_deriv[i,j] <- -sum(diag(as.matrix(G_subset)))
       }
     }
     grad_list <- grad_list %>% append(list(current_Sigma_i_deriv))

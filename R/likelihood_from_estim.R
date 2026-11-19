@@ -9,6 +9,12 @@
 #' @param svd_obj Output of performing SVD on the spatial weight matrix. Also
 #' includes slots for the inverses of U and V, as well as t(U) * V.
 #'
+#' @importFrom mvtnorm dmvnorm
+#'
+#' @return Log-likelihood value of the observed data under the given parameters
+#'
+#' @keywords internal
+#'
 
 likelihood_from_estim <- function(estim,
                                   svd_obj,
@@ -27,9 +33,12 @@ likelihood_from_estim <- function(estim,
                         U_inv = svd_obj$u_inv,
                         V_inv = svd_obj$v_inv,
                         tUxV = svd_obj$tUxV)
-  V <- calcul_V_P(current_Ainv_list = Ainv_list,
-                  current_Sigma_list = Sigma_list,
+  V <- calcul_V_P(Ainv_list = Ainv_list,
+                  Sigma_list = Sigma_list,
                   D_list = D_list)
-  likelihood_val <- dmvnorm(x = vec_X, mean = rep(0, n*p), sigma = as.matrix(V), log = TRUE)
+  likelihood_val <- dmvnorm(x = vec_X,
+                            mean = rep(0, n*p),
+                            sigma = as.matrix(V),
+                            log = TRUE)
   return(likelihood_val)
 }

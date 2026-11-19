@@ -1,13 +1,24 @@
 Package: CSSpatialNet
-Title: Cell-type specific spatial autocorrelation and covariance estimation from spot-level spatial data
+Title: Cell-type specific spatial autocorrelation and covariance estimation 
+    from spot-level spatial data
 Version: 0.0.0.9000
 Authors@R: 
-    person("Max", "Woollard", , "mwoo5086@uni.sydney.edu.au", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Max", "Woollard", 
+        email = "mwoo5086@uni.sydney.edu.au", 
+        role = c("aut", "cre"),
+        comment=c(ORCID="0009-0000-6319-6926"))
+Description: CSSpatialNet is a method for estimating cell-type-specific spatial
+    autocorrelations and gene-gene covariances from spot-level spatial data.
+    This package uncludes all functions to estimate the parameters of the model,
+    as well as compute confidence intervals for the parameters.
+License: MIT + file LICENSE
 Config/roxygen2/version: 8.1.1
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 URL: https://github.com/Mwoo-usyd/CSSpatialNet
 BugReports: https://github.com/Mwoo-usyd/CSSpatialNet/issues
+Depends: R (>= 4.4.0),
+Imports: magrittr (>= 2.0), vctrs (>= 0.6), Matrix, purrr, dplyr, mvtnorm
+Suggests: BiocStyle, ggplot2, knitr, gtools, mvnfast
+VignetteBuilder: knitr
+NeedsCompilation: yes

@@ -1,3 +1,24 @@
+#' estim_to_cov
+#'
+#' @description
+#' Function to turn a vector of values (estimates or SEs), such as is returned
+#' at each iteration of optim_procedure, into a more interpretable list of
+#' matrices.
+#'
+#' @param long_estim Vector of values to be turned into an interpretable list
+#' of matrices
+#' @param K Number of cell types
+#' @param p Number of genes
+#'
+#' @return List of length 2*K, where the first K are the diagonal matrices of
+#' spatial autocorrelation for each cell type, and the remaining K are the
+#' gene-gene covariance matrices for each cell type.
+#'
+#' @importFrom magrittr %>%
+#'
+#' @keywords internal
+#'
+
 estim_to_cov <- function(long_estim,
                          K,
                          p) {

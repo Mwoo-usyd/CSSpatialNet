@@ -1,0 +1,188 @@
+---
+title: "CSSpatialNet"
+author:
+  - Max Woollard
+  - Linh Nghiem
+  - Shila Ghazanfar
+output:
+  BiocStyle::html_document:
+    toc_float: true
+  BiocStyle::pdf_document: default
+package: CSSpatialNet
+vignette: |
+  %\VignetteIndexEntry{CSSpatialNet}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+collapse = FALSE
+)
+```
+
+```{r, message=FALSE, warning=FALSE}
+# Installation
+# install.packages("devtools")
+# devtools::install_github("SydneyBioX/wSIR")
+
+# library(wSIR) # package itself
+library(magrittr) # for %>% 
+library(ggplot2) # for ggplot
+# library(doBy) # for which.maxn
+library(vctrs) # for vec_rep_each
+# library(umap) # for umap
+# library(class) # for example wSIR application
+# library(SpatialExperiment) # for creating SpatialExperiment object
+
+library(CSSpatialNet)
+
+library(gtools)
+
+set.seed(2026)
+```
+
+# Introduction
+
+CSSpatialNet is a method for estimation of cell-type-specific spatial 
+autocorrelations and gene covariances from spot-level spatial data. The method
+works by fitting a spatially autoregressive model on each cell type's gene
+expression matrix, including a non-spatial multivariate normal error term for 
+the gene covariances. The spatial autocorrelations and (non-spatial) gene 
+covariances are estimated through maximum likelihood estimation. The resulting 
+parameter estimates can be used to better understand gene-gene covariances in a
+way that accounts for the spatial autocorrelation of genes in spatial biology. 
+The method allows for calculating the standard error of each parameter, which 
+can be used to construct confidence intervals or perform hypothesis tests.
+
+## Method overview
+
+1) Set up model
+2) Maximum likelihood with ADAM optimiser for parameter estimation
+3) Standard errors calculated with Fisher information
+
+## Vignette overview
+
+# Data
+
+## Simulated Data
+
+For this vignette, we generate a small simulated dataset to demonstrate 
+CSSpatialNet's capabilities. For this simulation, we will have $n = 100$ points,
+$p = 2$ genes, and $K = 2$ cell types. $P_k$, the spatial autocorrelation vector 
+for cell type $k$ and $\Sigma_k$, the gene-gene covariance matrix for cell type
+$k$, are constructed as follows:
+
+$$P_1 = (0,0.7), P_2 = (0.8,0.4)$$
+$$\Sigma_1 = \begin{bmatrix}1.2 & 0.5 \\0.5 & 1\end{bmatrix},
+\Sigma_2 = \begin{bmatrix}1.5 & 0 \\0 & 0.8\end{bmatrix}$$
+
+The $n = 100$ points are equally spaced on a $10 \times 10$ grid. The spatial 
+weights, as by default, are constructed to be an adjacency matrix where there is
+an edge between points that are adjacent or diagonally opposite. The adjacency 
+matrix is row normalised, made symmetric, and then the largest eigenvalue is set
+to be 0. These are needed for the estimation procedure to hold.
+
+We then randomly generate each cell type's gene expression matrix under the
+correct model. 
+
+```{r}
+n <- 225
+p <- 2
+K <- 2
+P1 <- diag(c(0, 0.7))
+P2 <- diag(c(0.8, 0.4))
+
+Sigma1 <- matrix(c(1.2,0.5,0.5,1), nrow = 2)
+Sigma2 <- matrix(c(1.5,0,0,0.8), nrow = 2)
+
+coords_df <- expand.grid(c(1:sqrt(n)), c(1:sqrt(n)))/sqrt(n)
+
+# create spatial weight matrix
+weights <- CSSpatialNet:::create_weights(coords = coords_df, lattice_shape = "square")
+
+# Create covariance matrix of vec(X) for cell type 1
+Ainv_ct1 <- solve(diag(n*p) - kronecker(P1, weights))
+cov_mat_vecX_ct1 <- Ainv_ct1 %*% kronecker(Sigma1, diag(n)) %*% Ainv_ct1
+
+# Create covariance matrix of vec(X) for cell type 2
+Ainv_ct2 <- solve(diag(n*p) - kronecker(P2, weights))
+cov_mat_vecX_ct2 <- Ainv_ct2 %*% kronecker(Sigma2, diag(n)) %*% Ainv_ct2
+
+# create proportions
+props_mat <- rdirichlet(n = n, alpha = rep(5, 2))
+
+# create the per-cell-type and spot-level gene expression matrices
+vecX_ct1 <- mvnfast::rmvn(n = 1,
+                          mu = rep(0, n*p),
+                          sigma = cov_mat_vecX_ct1)
+X_ct1 <- matrix(vecX_ct1, nrow = n, ncol = p)
+vecX_ct2 <- mvnfast::rmvn(n = 1,
+                          mu = rep(0, n*p),
+                          sigma = cov_mat_vecX_ct2)
+X_ct2 <- matrix(vecX_ct2, nrow = n, ncol = p)
+vecX <- vecX_ct1 * rep(props_mat[,1], p) +
+  vecX_ct2 * rep(props_mat[,2], p)
+X <- matrix(vecX, nrow = n, ncol = p)
+
+# cov(X)
+# CSNet::mom_ls(X = X, P = props_mat, weight_th = 0.01)
+```
+
+Below is displayed the expression of gene 1 within each cell type and in the 
+spot-level dataset. It is important to note that this gene has no spatial
+autocorrelation in cell type 1, since $P_1[1] = 0$, which corresponds to no 
+clear pattern in the first facet. There is spatial autocorrelation for cell type 
+2, since $P_2[1] \neq 0$, corresponding to a visible clumping in the middle
+facet. The spot-level expression has a mild level of clumping. CSSpatialNet
+attemps to recover the spatial autocorrelation for each gene within each cell
+type, while also estimating the gene-gene covariance matrices.
+
+```{r}
+X_df <- data.frame(g1 = c(X_ct1[,1],X_ct2[,1],X[,1]),
+                        g2 = c(X_ct1[,2],X_ct2[,2],X[,2]),
+                        spatial1 = rep(coords_df$Var1, 3),
+                        spatial2 = rep(coords_df$Var2, 3),
+                        group = vec_rep_each(c("Cell type 1",
+                                               "Cell type 2",
+                                               "Spot"), n))
+
+ggplot(X_df, aes(x = spatial1, y = spatial2, colour = g1)) +
+  geom_point(size = 3) +
+  scale_colour_viridis_c() +
+  facet_wrap(vars(group)) +
+  theme_classic() +
+  theme(legend.position = "bottom") +
+  labs(x = "Spatial 1",
+       y = "Spatial 2",
+       colour = "Gene 1") +
+  ggtitle("Spot-level and within-cell-type expression of gene 1")
+```
+
+## Real data application
+
+Load some real data
+Pseudo-spot or actually spot-based? Maybe actual spots
+
+# CSSpatialNet for spatial autocorrelation and gene-gene covariance estimation
+
+## CSSpatialNet computation
+
+Below we run CSSpatialNet on the simulated data we created before.
+
+```{r}
+set.seed(2026)
+csspatialnet_out <- CSSpatialNet(X = X,
+                                 proportions = props_mat,
+                                 W = weights,
+                                 print_every = 50)
+# csspatialnet_out$SEs
+
+CI_dataframe <- calculate_CIs(X = X, 
+                              proportions = props_mat, 
+                              CSSpatialNet_output = csspatialnet_out)
+```
+
+The 
+
+## Case study

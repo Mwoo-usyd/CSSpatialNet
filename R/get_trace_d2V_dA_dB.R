@@ -14,8 +14,8 @@
 #' @param d2V_dSigmak_dPk_list List of second derivatives of V (covariance
 #' matrix of vec(X)) with respect to one spatial autocorrelation parameter and
 #' one gene variance or covariance parameter
-#' @param Vinv_dl_dVinv_Vinv V^{-1} times derivative of log-likelihood with
-#' respect to V^{-1} times V^{-1}
+#' @param Vinv_dl_dVinv_Vinv \eqn{V^{-1} \times} derivative of log-likelihood
+#' with respect to \eqn{V^{-1} \times V^{-1}}
 #' @param all_cell_types vector of cell types (labelled 1 to K) for
 #' each parameter
 #'
@@ -48,18 +48,26 @@ get_trace_d2V_dA_dB <- function(a,
     if (param1 == "Pk" & param2 == "Pk") {
       lower <- min(a_adj,b_adj)
       upper <- max(a_adj,b_adj)
-      list_position_d2V_dPk_dPk <- upper*(upper-1)/2 + lower + (current_cell_type-1) * p * (p+1)/2
+      list_position_d2V_dPk_dPk <- upper*(upper-1)/2 +
+        lower +
+        (current_cell_type-1) * p * (p+1)/2
       current_d2V_dPk_dPk <- d2V_dPk_dPk_list[[list_position_d2V_dPk_dPk]]
-      trace_result <- calcul_trace_2input(a = Vinv_dl_dVinv_Vinv, b = current_d2V_dPk_dPk)
-    } else if ((param1 == "Sigmak" & param2 == "Pk") | (param1 == "Pk" & param2 == "Sigmak")) {
+      trace_result <- calcul_trace_2input(a = Vinv_dl_dVinv_Vinv,
+                                          b = current_d2V_dPk_dPk)
+    } else if ((param1 == "Sigmak" & param2 == "Pk") |
+               (param1 == "Pk" & param2 == "Sigmak")) {
       Pk_pos <- min(a,b)
       Sigmak_pos <- max(a,b)
       Pk_pos_adj <- Pk_pos - (current_cell_type - 1) * p
       Sigmak_pos_adj <- Sigmak_pos - K*p - (current_cell_type - 1) * p * (p+1)/2
       prev_cell_types_skip <- (current_cell_type-1) * p * p * (p+1)/2
-      list_position_d2V_dSigmak_dPk <- prev_cell_types_skip + (Pk_pos_adj - 1) * p * (p+1)/2 + Sigmak_pos_adj
-      current_d2V_dSigmak_dPk <- d2V_dSigmak_dPk_list[[list_position_d2V_dSigmak_dPk]]
-      trace_result <- calcul_trace_2input(a = Vinv_dl_dVinv_Vinv, b = current_d2V_dSigmak_dPk)
+      list_position_d2V_dSigmak_dPk <- prev_cell_types_skip +
+        (Pk_pos_adj - 1) * p * (p+1)/2 +
+        Sigmak_pos_adj
+      current_d2V_dSigmak_dPk <-
+        d2V_dSigmak_dPk_list[[list_position_d2V_dSigmak_dPk]]
+      trace_result <- calcul_trace_2input(a = Vinv_dl_dVinv_Vinv,
+                                          b = current_d2V_dSigmak_dPk)
     } else {trace_result <- 0}
   } else {trace_result <- 0}
   return(-trace_result)

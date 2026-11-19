@@ -3,7 +3,8 @@
 #' get_ainv
 #'
 #' @description
-#' Function to calculate K matrices of the form (I_{np} - P_{k}*W)-1
+#' Function to calculate K matrices of the form
+#' \eqn{(I_{np} - P_{k}\otimes W)-1}
 #'
 #' @param P_list List of cell-type specific diagonal matrices of
 #' spatial autocorrelation
@@ -13,7 +14,9 @@
 #' @param tUxV transpose of U times V, where U and V are outputs
 #' of SVD(weight matrix)
 #'
-#' @return List of K matrices of the form (I_{np} - P_{k}*W)-1
+#' @return List of K matrices of the form \eqn{(I_{np} - P_{k} \otimes W)-1}
+#'
+#' @importFrom Matrix bdiag
 #'
 #' @keywords internal
 
@@ -21,14 +24,13 @@ get_ainv <- function(P_list,
                      U_inv,
                      d,
                      V_inv,
-                     tUxV) { # where U, d, V are from svd(W), and _inv is inverse. d is a vector
+                     tUxV) {
   n <- length(d)
   p <- nrow(P_list[[1]])
 
   Ainv_all_K <- lapply(P_list, function(Pk) {
-    diag_vals <- diag(Pk) # extract diagonal values (off-diags are all 0 anyway)
-    each_gene_inv <- lapply(diag_vals, function(Pki) { # apply function to each scalar Pk[i,i]
-      # result <- t(V_inv) %*% solve(tUxV - diag(Pki * d)) %*% U_inv
+    diag_vals <- diag(Pk)
+    each_gene_inv <- lapply(diag_vals, function(Pki) {
       result <- crossprod(V_inv, solve(tUxV - diag(Pki * d))) %*% U_inv
       return(result)
     })
